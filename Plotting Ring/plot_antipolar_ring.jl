@@ -1,21 +1,32 @@
+# plot_antipolar_ring.jl
+# Anti-polar active ring: beads 1–8 push counterclockwise (:active),
+# beads 9–16 push clockwise (:active_rev). Starts from a perfect circle.
+#
+# Boundary condition: the whole ring moves freely and exits the box.
+# Once EVERY bead has crossed a wall the entire ring is shifted by ±L,
+# so it reappears intact on the opposite side with the same velocity.
+# Forces are never computed across the boundary.
+#
+# Layout: ring animation (left) + 4 time-series plots (right).
+# X-axis of time series = MP4 timestamp in seconds, so you can jump to
+# any feature you spot in the graphs.
+#
+# Colour legend:  dodgerblue = :active (CCW),  crimson = :active_rev (CW)
 
-
-using GLMakie
+using GLMakie, Printf
 
 include(joinpath(@__DIR__, "..", "Simulation Ring", "Engine_ring.jl"))
 using .EngineRing
 
-# Shift the entire ring by ±L once it has completely exited a wall.
 function wrap_ring!(r::Matrix{Float64}, L::Float64)
     hw = L / 2.0
-    min_x = minimum(r[1, :]);  max_x = maximum(r[1, :])
-    min_y = minimum(r[2, :]);  max_y = maximum(r[2, :])
-    min_x >  hw && (r[1, :] .-= L)   # completely off right  → enter from left
-    max_x < -hw && (r[1, :] .+= L)   # completely off left   → enter from right
-    min_y >  hw && (r[2, :] .-= L)   # completely off top    → enter from bottom
-    max_y < -hw && (r[2, :] .+= L)   # completely off bottom → enter from top
+    min_x = minimum(r[1, :]); max_x = maximum(r[1, :])
+    min_y = minimum(r[2, :]); max_y = maximum(r[2, :])
+    min_x >  hw && (r[1, :] .-= L)
+    max_x < -hw && (r[1, :] .+= L)
+    min_y >  hw && (r[2, :] .-= L)
+    max_y < -hw && (r[2, :] .+= L)
 end
-
 
 function force_directions(r::Matrix{Float64}, bt::Vector{Symbol}, N::Int)
     tx = zeros(N); ty = zeros(N)
@@ -36,7 +47,6 @@ function force_directions(r::Matrix{Float64}, bt::Vector{Symbol}, N::Int)
     return tx, ty
 end
 
-
 function make_backbone(r::Matrix{Float64}, N::Int)
     pts = Vector{Point2f}(undef, 2N)
     for i in 1:N
@@ -47,7 +57,6 @@ function make_backbone(r::Matrix{Float64}, N::Int)
     return pts
 end
 
-
 function make_segments(r::Matrix{Float64}, tx, ty, N::Int, scale::Float64)
     pts = Vector{Point2f}(undef, 2N)
     for i in 1:N
@@ -57,21 +66,39 @@ function make_segments(r::Matrix{Float64}, tx, ty, N::Int, scale::Float64)
     return pts
 end
 
-function main()
-    frames   = 1500   # ~25 s at 60 fps
-    substeps = 100
+# Returns (Gxx, Gyy, Gxy, λ1, λ2, Rg, b)
+# Rg = sqrt(λ1 + λ2),  b = (λ1 - λ2)² / (λ1 + λ2)²
+function gyration_vals(r::Matrix{Float64})
+    N   = size(r, 2)
+    xcm = sum(r[1, :]) / N
+    ycm = sum(r[2, :]) / N
+    Gxx = sum((r[1, i] - xcm)^2 for i in 1:N) / N
+    Gyy = sum((r[2, i] - ycm)^2 for i in 1:N) / N
+    Gxy = sum((r[1, i] - xcm) * (r[2, i] - ycm) for i in 1:N) / N
+    mid  = (Gxx + Gyy) / 2.0
+    half = sqrt(((Gxx - Gyy) / 2.0)^2 + Gxy^2)
+    λ1   = mid + half
+    λ2   = mid - half
+    rg2  = λ1 + λ2
+    b    = rg2 > 1e-30 ? (λ1 - λ2)^2 / rg2^2 : 0.0
+    return Gxx, Gyy, Gxy, λ1, λ2, sqrt(max(rg2, 0.0)), b
+end
 
-    p = EngineRing.Params()   # N=16, f0=20, kBT=1, ks=2000, κ=1, …
+function main()
+    frames    = 1500
+    substeps  = 100
+    framerate = 60
+    L         = 50.0
+    hw        = L / 2.0
+    t_end     = frames / framerate          # 25.0 s
+
+    p = EngineRing.Params()
     N = p.N
     l = p.l
-    L = 50.0
-    hw = L / 2.0
 
-    # --- bead types: first half CCW, second half CW ---
     bead_types = vcat(fill(:active,     N ÷ 2),
                       fill(:active_rev, N ÷ 2))
 
-    # --- initial configuration: perfect circle at centre ---
     R  = l / (2 * sin(π / N))
     r0 = zeros(2, N)
     for i in 1:N
@@ -79,48 +106,77 @@ function main()
         r0[1, i] = R * cos(φ)
         r0[2, i] = R * sin(φ)
     end
-
     state = EngineRing.State(copy(r0), copy(bead_types))
 
-    # --- colours (fixed per bead) ---
     colour_map   = Dict(:active => :dodgerblue, :active_rev => :crimson)
     bead_colours = [colour_map[t] for t in bead_types]
     seg_colours  = repeat(bead_colours; inner = 2)
 
-    # --- observables ---
     arrow_scale = 0.65
     tx0, ty0    = force_directions(state.r, bead_types, N)
 
+    # ── Ring observables ──────────────────────────────────────────────────
     backbone   = Observable(make_backbone(state.r, N))
     arrow_segs = Observable(make_segments(state.r, tx0, ty0, N, arrow_scale))
     xs_pts     = Observable(state.r[1, :])
     ys_pts     = Observable(state.r[2, :])
 
-    # --- figure ---
-    fig = Figure(size = (720, 720))
-    ax  = Axis(fig[1, 1];
-        xlabel = "x",
-        ylabel = "y",
+    Gxx0, Gyy0, Gxy0, λ1_0, λ2_0, rg0, b0 = gyration_vals(state.r)
+    rg_str = Observable(
+        @sprintf("Gxx=%.3f  Gyy=%.3f\nGxy=%.3f\nλ₁=%.3f  λ₂=%.3f\nRg²=%.3f\nb=%.3f",
+                 Gxx0, Gyy0, Gxy0, λ1_0, λ2_0, rg0^2, b0))
+
+    # ── Time-series observables ───────────────────────────────────────────
+    rg_data = Observable(Point2f[])
+    λ1_data = Observable(Point2f[])
+    λ2_data = Observable(Point2f[])
+    b_data  = Observable(Point2f[])
+    t_line  = Observable([0.0f0])   # vertical time-cursor for vlines!
+
+    # ── Figure: 1400×780, ring left, 4 time-series right ─────────────────
+    fig = Figure(size = (1400, 780))
+
+    ax_ring = Axis(fig[1:4, 1];
+        xlabel = "x", ylabel = "y",
         title  = "Anti-polar ring  (blue = CCW,  red = CW)",
         aspect = DataAspect(),
     )
-    xlims!(ax, -hw, hw)
-    ylims!(ax, -hw, hw)
+    xlims!(ax_ring, -hw, hw)
+    ylims!(ax_ring, -hw, hw)
 
-    linesegments!(ax, backbone;       linewidth = 1.5, color = :black)
-    scatter!(ax,      xs_pts, ys_pts; markersize = 10, color = bead_colours)
-    linesegments!(ax, arrow_segs;     linewidth = 2.5, color = seg_colours)
+    linesegments!(ax_ring, backbone;       linewidth = 1.5, color = :black)
+    scatter!(ax_ring,      xs_pts, ys_pts; markersize = 10, color = bead_colours)
+    linesegments!(ax_ring, arrow_segs;     linewidth = 2.5, color = seg_colours)
 
     param_text = "N = $(p.N)   f₀ = $(p.f0)   κ = $(p.κ)   kBT = $(p.kBT)\n" *
                  "Init: perfect circle, anti-polar (beads 1–$(N÷2) CCW, $(N÷2+1)–$(N) CW)"
-    text!(ax, -hw + 0.5, hw - 1.5; text = param_text, fontsize = 13,
+    text!(ax_ring, -hw + 0.5, hw - 1.5; text = param_text, fontsize = 13,
           color = :black, align = (:left, :top))
+    text!(ax_ring,  hw - 0.5, hw - 1.5; text = rg_str,     fontsize = 12,
+          color = :black, align = (:right, :top))
+
+    # ── Time-series axes ──────────────────────────────────────────────────
+    ax_rg = Axis(fig[1, 2]; ylabel = "Rg",  xticklabelsvisible = false)
+    ax_λ1 = Axis(fig[2, 2]; ylabel = "λ₁",  xticklabelsvisible = false)
+    ax_λ2 = Axis(fig[3, 2]; ylabel = "λ₂",  xticklabelsvisible = false)
+    ax_b  = Axis(fig[4, 2]; ylabel = "b",   xlabel = "time  (s)")
+
+    for ax in (ax_rg, ax_λ1, ax_λ2, ax_b)
+        xlims!(ax, 0.0, t_end)
+        vlines!(ax, t_line; color = :gray50, linestyle = :dash, linewidth = 1.5)
+    end
+    linkxaxes!(ax_rg, ax_λ1, ax_λ2, ax_b)
+
+    lines!(ax_rg, rg_data; color = :dodgerblue, linewidth = 1.5)
+    lines!(ax_λ1, λ1_data; color = :crimson,    linewidth = 1.5)
+    lines!(ax_λ2, λ2_data; color = :orange,     linewidth = 1.5)
+    lines!(ax_b,  b_data;  color = :green,      linewidth = 1.5)
 
     display(fig)
 
-    # --- animation ---
+    # ── Record loop ───────────────────────────────────────────────────────
     output_path = joinpath(@__DIR__, "antipolar_ring.mp4")
-    record(fig, output_path, 1:frames; framerate = 60) do _
+    record(fig, output_path, 1:frames; framerate = framerate) do frame_idx
         for _ in 1:substeps
             EngineRing.step!(state, p)
         end
@@ -131,6 +187,20 @@ function main()
         ys_pts[]     = state.r[2, :]
         tx, ty       = force_directions(state.r, bead_types, N)
         arrow_segs[] = make_segments(state.r, tx, ty, N, arrow_scale)
+
+        Gxx, Gyy, Gxy, λ1, λ2, rg, b = gyration_vals(state.r)
+        rg_str[] = @sprintf(
+            "Gxx=%.3f  Gyy=%.3f\nGxy=%.3f\nλ₁=%.3f  λ₂=%.3f\nRg²=%.3f\nb=%.3f",
+            Gxx, Gyy, Gxy, λ1, λ2, rg^2, b)
+
+        t = Float32(frame_idx / framerate)
+        push!(rg_data[],  Point2f(t, Float32(rg)))
+        push!(λ1_data[],  Point2f(t, Float32(λ1)))
+        push!(λ2_data[],  Point2f(t, Float32(λ2)))
+        push!(b_data[],   Point2f(t, Float32(b)))
+        notify(rg_data); notify(λ1_data); notify(λ2_data); notify(b_data)
+
+        t_line[] = [t]
     end
     println("Saved to: ", output_path)
 end
