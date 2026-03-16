@@ -1,13 +1,4 @@
-# plot_antipolar_ring.jl
-# Anti-polar active ring: beads 1–8 push counterclockwise (:active),
-# beads 9–16 push clockwise (:active_rev). Starts from a perfect circle.
-#
-# Boundary condition: the whole ring moves freely and exits the box.
-# Once EVERY bead has crossed a wall the entire ring is shifted by ±L,
-# so it reappears intact on the opposite side with the same velocity.
-# Forces are never computed across the boundary.
-#
-# Colour legend:  dodgerblue = :active (CCW),  crimson = :active_rev (CW)
+
 
 using GLMakie
 
@@ -25,9 +16,7 @@ function wrap_ring!(r::Matrix{Float64}, L::Float64)
     max_y < -hw && (r[2, :] .+= L)   # completely off bottom → enter from top
 end
 
-# Unit active-force direction for each bead (sign-flipped for :active_rev).
-# All beads are always compact (ring never straddles a boundary), so no
-# minimum-image convention is needed here.
+
 function force_directions(r::Matrix{Float64}, bt::Vector{Symbol}, N::Int)
     tx = zeros(N); ty = zeros(N)
     for i in 1:N
@@ -47,8 +36,7 @@ function force_directions(r::Matrix{Float64}, bt::Vector{Symbol}, N::Int)
     return tx, ty
 end
 
-# Ring backbone as linesegments. No minimum-image needed: the ring is always
-# kept intact by wrap_ring!, so all consecutive beads are within ~l of each other.
+
 function make_backbone(r::Matrix{Float64}, N::Int)
     pts = Vector{Point2f}(undef, 2N)
     for i in 1:N
@@ -59,7 +47,7 @@ function make_backbone(r::Matrix{Float64}, N::Int)
     return pts
 end
 
-# Force-direction stubs as linesegments.
+
 function make_segments(r::Matrix{Float64}, tx, ty, N::Int, scale::Float64)
     pts = Vector{Point2f}(undef, 2N)
     for i in 1:N
