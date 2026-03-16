@@ -1,0 +1,12 @@
+# Julia
+*.jl.cov
+*.jl.mem
+Manifest.toml
+
+# OS
+Thumbs.db
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
