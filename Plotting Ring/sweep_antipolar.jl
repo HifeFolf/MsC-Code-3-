@@ -1,12 +1,3 @@
-# sweep_antipolar.jl
-# Parameter sweep over f0 and κ (steps of 5) for the anti-polar ring.
-# N=16, initial perfect circle, beads 1–8 CCW / 9–16 CW — fixed throughout.
-#
-# Boundary condition: whole-ring wrap. The ring exits freely; once every bead
-# has crossed a wall the entire ring is shifted by ±L so it re-enters intact
-# from the opposite side with the same velocity. No cross-boundary forces.
-#
-# Saves one MP4 per (f0, κ) combination; ~25 s each at 60 fps.
 
 using GLMakie, Printf
 
