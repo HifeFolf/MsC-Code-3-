@@ -229,7 +229,8 @@ function active_forces!(F::Matrix{Float64}, r::Matrix{Float64}, p::Params,
     f0 = p.f0
 
     @inbounds for i in 1:N
-        bt[i] == :active || continue
+        (bt[i] == :active || bt[i] == :active_rev) || continue
+        sign = (bt[i] == :active_rev) ? -1.0 : 1.0
 
         if p.topology == :ring
             # all beads are interior — use wrap-around neighbours
@@ -257,8 +258,8 @@ function active_forces!(F::Matrix{Float64}, r::Matrix{Float64}, p::Params,
         if n < 1e-14
             continue
         end
-        F[1,i] += f0 * dx / n
-        F[2,i] += f0 * dy / n
+        F[1,i] += sign * f0 * dx / n
+        F[2,i] += sign * f0 * dy / n
     end
     return nothing
 end
