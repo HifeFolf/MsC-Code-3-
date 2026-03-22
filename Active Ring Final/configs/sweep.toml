@@ -1,0 +1,23 @@
+# sweep.toml
+# Parameter sweep specification.
+#
+# [sweep.base]  — the config file to use as the baseline for all runs.
+# [sweep.run]   — overrides for run-level settings (frames, substeps, etc.)
+# [sweep.params] — each key is a Params field name; value is a list of values.
+#
+# run_sweep.jl will take the Cartesian product of all lists in [sweep.params]
+# and launch one run per combination.
+#
+# Example below: 3 × 3 = 9 runs varying f0 and kappa.
+
+[sweep]
+base = "configs/default.toml"
+
+[sweep.run]
+frames   = 1500
+substeps = 100
+seed     = 42
+
+[sweep.params]
+f0    = [5.0, 10.0, 20.0]
+kappa = [0.5, 1.0, 2.0]

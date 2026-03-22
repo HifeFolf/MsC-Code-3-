@@ -1,0 +1,31 @@
+# default.toml
+# Configuration for a single anti-polar ring simulation run.
+# Edit this file to change parameters without touching any source code.
+#
+# [params]  → maps directly to EngineRing.Params fields
+# [run]     → controls the simulation loop and output
+
+[params]
+N         = 16        # number of beads (must be even for anti-polar layout)
+l         = 1.0       # rest bond length
+ks        = 2000.0    # bond spring stiffness
+kappa     = 20.0       # bending stiffness κ
+theta_max = 3.141592653589793   # maximum allowed bond angle (π rad)
+theta_buf = 0.1       # log-wall buffer width (rad)
+k_stop    = 0.0       # log-wall barrier stiffness (0 = disabled)
+sigma     = 1.0       # WCA bead diameter σ
+epsilon   = 1.0       # WCA interaction strength ε
+topology  = "ring"    # "ring" or "open"
+f0        = 20.0      # active propulsion force magnitude
+mu        = 1.0       # mobility μ = 1/γ
+kBT       = 1.0       # thermal energy (0 = no noise)
+dt        = 0.00005   # time step
+
+[run]
+frames       = 1500   # number of saved frames (= MP4 frames)
+substeps     = 100    # physics steps between saved frames
+framerate    = 60     # MP4 framerate (frames per second)
+L            = 50.0   # periodic wrapping length (box half-width = L/2)
+seed         = 42     # RNG seed for reproducibility
+bead_layout  = "antipolar"   # IC type; only "antipolar" supported currently
+outdir       = "results"     # base directory for run output folders

@@ -10,3 +10,9 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Simulation outputs (large binary data — not tracked in git)
+Active Ring Final/results/
+
+# Claude Code memory
+.claude/
