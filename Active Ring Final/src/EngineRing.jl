@@ -35,7 +35,7 @@ Base.@kwdef struct Params
     topology::Symbol   = :ring
     f0::Float64    = 20.0
     mu::Float64    = 1.0
-    kBT::Float64   = 1
+    kBT::Float64   = 0.1
     dt::Float64    = 0.00005
 end
 

@@ -66,10 +66,14 @@ println("Total runs: $n_runs\n")
 base_dir = joinpath(PROJECT_ROOT_SW, base_cfg["run"]["outdir"])
 mkpath(base_dir)
 
-function next_run_id(base::String)
+const SWEEP_RUN_START = 500   # first run ID for this sweep
+
+function next_run_id(base::String, start_id::Int = SWEEP_RUN_START)
     existing = filter(d -> occursin(r"^run_\d+$", d), readdir(base, join = false))
     nums = [parse(Int, d[5:end]) for d in existing]
-    n    = isempty(nums) ? 1 : maximum(nums) + 1
+    # Only consider IDs >= start_id
+    sweep_nums = filter(n -> n >= start_id, nums)
+    n = isempty(sweep_nums) ? start_id : maximum(sweep_nums) + 1
     return @sprintf("run_%04d", n)
 end
 
@@ -151,6 +155,9 @@ for (combo_idx, combo) in enumerate(combos)
     obs_Gxx   = Vector{Float64}(undef, frames)
     obs_Gyy   = Vector{Float64}(undef, frames)
     obs_Gxy   = Vector{Float64}(undef, frames)
+    obs_A2    = Vector{Float64}(undef, frames)
+    obs_A3    = Vector{Float64}(undef, frames)
+    obs_Kloc  = Vector{Float64}(undef, frames)
 
     dt_frame = substeps * p.dt
     t_sim    = 0.0
@@ -180,9 +187,12 @@ for (combo_idx, combo) in enumerate(combos)
         obs_λ1[frame]  = obs.λ1
         obs_λ2[frame]  = obs.λ2
         obs_b[frame]   = obs.b
-        obs_Gxx[frame] = obs.Gxx
-        obs_Gyy[frame] = obs.Gyy
-        obs_Gxy[frame] = obs.Gxy
+        obs_Gxx[frame]  = obs.Gxx
+        obs_Gyy[frame]  = obs.Gyy
+        obs_Gxy[frame]  = obs.Gxy
+        obs_A2[frame]   = obs.A2
+        obs_A3[frame]   = obs.A3
+        obs_Kloc[frame] = obs.Kloc
 
         if frame % max(1, frames ÷ 10) == 0
             println("  $(round(Int, 100*frame/frames)) %  (frame $frame / $frames)")
@@ -194,7 +204,8 @@ for (combo_idx, combo) in enumerate(combos)
     IOUtils.save_trajectory(run_dir, times, positions, bead_types)
     IOUtils.save_observables(run_dir, times, Dict{String, Vector{Float64}}(
         "Rg" => obs_Rg, "lambda1" => obs_λ1, "lambda2" => obs_λ2,
-        "b"  => obs_b,  "Gxx" => obs_Gxx,    "Gyy" => obs_Gyy, "Gxy" => obs_Gxy))
+        "b"  => obs_b,  "Gxx" => obs_Gxx,    "Gyy" => obs_Gyy, "Gxy" => obs_Gxy,
+        "A2" => obs_A2, "A3"  => obs_A3,     "Kloc" => obs_Kloc))
 
     summarize_run(run_dir)
     println("  Saved: $run_dir\n")

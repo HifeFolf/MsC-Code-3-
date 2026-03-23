@@ -139,6 +139,19 @@ function render_movie(run_dir::String; output_name::String = "preview.mp4")
     ax_Kloc = Axis(fig[4, 2]; ylabel = "Kloc", xticklabelsvisible = false)
     ax_b    = Axis(fig[5, 2]; ylabel = "b",    xlabel = "time  (s)")
 
+    # ── Pre-compute tight y-limits from the full observable data ─────────────
+    function tight_ylims(vals; pad_frac=0.08)
+        lo, hi = extrema(vals)
+        margin = max((hi - lo) * pad_frac, 1e-6)
+        return (lo - margin, hi + margin)
+    end
+
+    ylims!(ax_rg,   tight_ylims(obs["Rg"]))
+    ylims!(ax_A2,   tight_ylims(obs["A2"]))
+    ylims!(ax_A3,   tight_ylims(obs["A3"]))
+    ylims!(ax_Kloc, tight_ylims(obs["Kloc"]))
+    ylims!(ax_b,    tight_ylims(obs["b"]))
+
     for ax in (ax_rg, ax_A2, ax_A3, ax_Kloc, ax_b)
         xlims!(ax, 0.0, t_end)
         vlines!(ax, t_line; color = :gray50, linestyle = :dash, linewidth = 1.5)
@@ -192,7 +205,7 @@ end
 # ── Standalone entry point ────────────────────────────────────────────────────
 
 # ▼▼▼  Edit this line to choose which run to render when using the Run button  ▼▼▼
-const RUN_DIR = joinpath(@__DIR__, "..", "results", "run_0021")
+const RUN_DIR = joinpath(@__DIR__, "..", "results", "run_0002")
 # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
 run_dir = isempty(ARGS) ? RUN_DIR : ARGS[1]

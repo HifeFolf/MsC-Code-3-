@@ -8,7 +8,7 @@
 # run_sweep.jl will take the Cartesian product of all lists in [sweep.params]
 # and launch one run per combination.
 #
-# Example below: 3 × 3 = 9 runs varying f0 and kappa.
+# 22 × 23 = 506 runs sweeping f0 and kappa from 1 to 50.
 
 [sweep]
 base = "configs/default.toml"
@@ -19,5 +19,5 @@ substeps = 100
 seed     = 42
 
 [sweep.params]
-f0    = [5.0, 10.0, 20.0]
-kappa = [0.5, 1.0, 2.0]
+f0    = [1.0, 3.33, 5.67, 8.0, 10.33, 12.67, 15.0, 17.33, 19.67, 22.0, 24.33, 26.67, 29.0, 31.33, 33.67, 36.0, 38.33, 40.67, 43.0, 45.33, 47.67, 50.0]
+kappa = [1.0, 3.23, 5.45, 7.68, 9.91, 12.14, 14.36, 16.59, 18.82, 21.05, 23.27, 25.5, 27.73, 29.95, 32.18, 34.41, 36.64, 38.86, 41.09, 43.32, 45.55, 47.77, 50.0]
