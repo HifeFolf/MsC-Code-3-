@@ -1,9 +1,15 @@
 # transition_plot.jl
-# Plot regime fractions as a function of f₀/κ, using all existing sweep runs.
+# Plot mean asphericity b and mean COM speed v as continuous functions of f₀/κ.
 #
-# For each run, the 150-snapshot vote fractions are computed and plotted
-# against f₀/κ.  Runs are binned by f₀/κ to produce smooth curves showing
-# how the mode percentages change across the phase boundaries.
+# Each dot is one run.  Curled runs (compact ring, strong mode-2) are shown in a
+# distinct colour so the reader can judge whether they stand apart from the trend.
+# Binned means (± 1 SD) are overlaid to guide the eye.
+#
+# Two-panel layout:
+#   Left  — zoomed linear axis, f₀/κ ∈ [0, 30]
+#   Right — full range on a log axis
+# Each panel shows b (solid) and v (dashed, right y-axis via twinning) so both
+# quantities appear together without needing four separate panels.
 #
 # Usage (from the Active Ring Final/ project root):
 #
@@ -11,7 +17,7 @@
 #
 # Output:  results/transition_curves.png
 
-using CairoMakie, Statistics, Printf
+using CairoMakie, Statistics, Printf, JSON3
 
 const PROJECT_ROOT_TP = joinpath(@__DIR__, "..")
 
@@ -21,54 +27,23 @@ using .EngineRing
 include(joinpath(PROJECT_ROOT_TP, "src", "IOUtils.jl"))
 using .IOUtils
 
-# ── Snapshot classifier (same as phase_diagram.jl) ───────────────────────────
+# ── Parameters ────────────────────────────────────────────────────────────────
+const N_STEADY_TP  = 150    # frames from the end for steady-state average
+const CURLED_RG    = 2.0    # Rg threshold for curled detection
+const CURLED_A2    = 0.25   # A2 threshold for curled detection
+const N_BINS_ZOOM  = 20     # bins for zoomed panel
+const N_BINS_FULL  = 30     # bins for full-range panel (log-spaced)
 
-const CENTROIDS = Dict(
-    :circular   => (0.004, 0.022, 0.017),
-    :curled     => (0.062, 0.475, 0.306),
-    :elongated  => (0.522, 0.293, 0.065),
-    :triangular => (0.213, 0.180, 0.081),
-)
-
-const N_SNAPSHOTS = 150
-
-function classify_snapshot(Rg, b, A2, A3)
-    Rg < 2.0 && A2 > 0.25 && return :curled
-    b < 0.05 && A2 < 0.08 && return :circular
-    b > 0.25 && A2 > 0.15 && Rg > 2.0 && return :elongated
-    0.05 < b < 0.30 && A3 > 0.04 && 0.08 < A2 < 0.25 && return :triangular
-    best = :circular; best_d = Inf
-    for (regime, (cb, cA2, cA3)) in CENTROIDS
-        d = (b - cb)^2 + (A2 - cA2)^2 + (A3 - cA3)^2
-        d < best_d && (best_d = d; best = regime)
-    end
-    return best
-end
-
-function snapshot_fractions(obs::Dict{String, Vector{Float64}})
-    n       = length(obs["Rg"])
-    indices = round.(Int, range(1, n, length = N_SNAPSHOTS))
-    votes   = Dict(:circular => 0, :curled => 0, :elongated => 0, :triangular => 0)
-    for i in indices
-        r = classify_snapshot(obs["Rg"][i], obs["b"][i], obs["A2"][i], obs["A3"][i])
-        votes[r] += 1
-    end
-    return Dict(k => v / N_SNAPSHOTS for (k, v) in votes)
-end
-
-# ── Load all sweep runs ──────────────────────────────────────────────────────
-
+# ── Load all runs ─────────────────────────────────────────────────────────────
 results_dir = joinpath(PROJECT_ROOT_TP, "results")
 run_dirs    = filter(d -> (m = match(r"^run_(\d+)$", d); m !== nothing && 500 <= parse(Int, m[1]) <= 1100),
-                     readdir(results_dir, join=false))
+                     readdir(results_dir, join = false))
 sort!(run_dirs)
 
-# Per-run data
-ratios     = Float64[]        # f0/κ for each run
-frac_circ  = Float64[]
-frac_curl  = Float64[]
-frac_elong = Float64[]
-frac_tri   = Float64[]
+ratios    = Float64[]   # f₀/κ for each run
+b_means   = Float64[]   # steady-state mean b
+v_means   = Float64[]   # mean COM speed (NaN if unavailable)
+curled_fl = Bool[]      # is this run in the curled state?
 
 println("Loading $(length(run_dirs)) runs…\n")
 
@@ -77,119 +52,183 @@ for rd in run_dirs
     isfile(joinpath(rp, "observables.jld2")) || continue
     isfile(joinpath(rp, "params.toml"))      || continue
 
-    p, _  = IOUtils.load_params(rp)
+    p, _   = IOUtils.load_params(rp)
     _, obs = IOUtils.load_observables(rp)
+
+    haskey(obs, "b")  || continue
+    haskey(obs, "Rg") || continue
     haskey(obs, "A2") || continue
 
-    # Skip κ = 0 (ratio undefined) and very small κ
-    p.κ < 0.5 && continue
+    # Skip runs with κ = 0 (ratio undefined) or tiny κ
+    p.κ < 0.1 && continue
 
-    ratio = p.f0 / p.κ
-    fracs = snapshot_fractions(obs)
+    n      = length(obs["b"])
+    ss_idx = max(1, n - N_STEADY_TP + 1):n
 
-    push!(ratios,     ratio)
-    push!(frac_circ,  fracs[:circular])
-    push!(frac_curl,  fracs[:curled])
-    push!(frac_elong, fracs[:elongated])
-    push!(frac_tri,   fracs[:triangular])
+    b_ss  = mean(obs["b"][ss_idx])
+    Rg_ss = mean(obs["Rg"][ss_idx])
+    A2_ss = mean(obs["A2"][ss_idx])
+
+    curled = (Rg_ss < CURLED_RG) && (A2_ss > CURLED_A2)
+
+    v_mean = NaN
+    msj = joinpath(rp, "motion_summary.json")
+    if isfile(msj)
+        d = JSON3.read(read(msj, String))
+        v_mean = Float64(get(d, "com_speed_mean", NaN))
+    end
+
+    push!(ratios,    p.f0 / p.κ)
+    push!(b_means,   b_ss)
+    push!(v_means,   v_mean)
+    push!(curled_fl, curled)
+
+    @printf("  f0=%5.1f  κ=%4.1f  f0/κ=%6.2f  b=%.3f  v=%s  %s\n",
+            p.f0, p.κ, p.f0 / p.κ, b_ss,
+            isnan(v_mean) ? "N/A" : @sprintf("%.2f", v_mean),
+            curled ? "[CURLED]" : "")
 end
 
-println("Loaded $(length(ratios)) runs with κ ≥ 0.5")
+println("\nLoaded $(length(ratios)) runs  ($(sum(curled_fl)) curled)")
+
+has_v = .!isnan.(v_means)
 
 # ── Binning helper ────────────────────────────────────────────────────────────
-
-function bin_fractions(ratios, fc, fcu, fe, ft; edges)
-    nb = length(edges) - 1
+# Returns (bin_centers, b_mean_binned, b_sd_binned, v_mean_binned, v_sd_binned, counts)
+function bin_continuous(ratios, b_vals, v_vals; edges)
+    nb      = length(edges) - 1
     centers = [(edges[i] + edges[i+1]) / 2 for i in 1:nb]
-    bc  = zeros(nb); bcu = zeros(nb); be = zeros(nb); bt = zeros(nb)
-    cnt = zeros(Int, nb)
-    edge_vec = collect(edges)
+    b_sum   = zeros(nb); b_sum2 = zeros(nb)
+    v_sum   = zeros(nb); v_sum2 = zeros(nb)
+    b_cnt   = zeros(Int, nb); v_cnt = zeros(Int, nb)
+    ev      = collect(edges)
+
     for j in eachindex(ratios)
-        bi = searchsortedlast(edge_vec, ratios[j])
-        bi = clamp(bi, 1, nb)
-        bc[bi]  += fc[j];  bcu[bi] += fcu[j]
-        be[bi]  += fe[j];  bt[bi]  += ft[j]
-        cnt[bi] += 1
+        bi = clamp(searchsortedlast(ev, ratios[j]), 1, nb)
+        b_sum[bi]  += b_vals[j]; b_sum2[bi] += b_vals[j]^2; b_cnt[bi] += 1
+        if !isnan(v_vals[j])
+            v_sum[bi] += v_vals[j]; v_sum2[bi] += v_vals[j]^2; v_cnt[bi] += 1
+        end
     end
-    for i in 1:nb
-        cnt[i] > 0 && (bc[i] /= cnt[i]; bcu[i] /= cnt[i]; be[i] /= cnt[i]; bt[i] /= cnt[i])
-    end
-    m = cnt .> 0
-    return centers[m], bc[m], bcu[m], be[m], bt[m]
+
+    b_m = [b_cnt[i] > 0 ? b_sum[i] / b_cnt[i] : NaN for i in 1:nb]
+    b_s = [b_cnt[i] > 1 ? sqrt(max(0, b_sum2[i]/b_cnt[i] - b_m[i]^2)) : 0.0 for i in 1:nb]
+    v_m = [v_cnt[i] > 0 ? v_sum[i] / v_cnt[i] : NaN for i in 1:nb]
+    v_s = [v_cnt[i] > 1 ? sqrt(max(0, v_sum2[i]/v_cnt[i] - v_m[i]^2)) : 0.0 for i in 1:nb]
+
+    m_b = b_cnt .> 0
+    m_v = v_cnt .> 0
+    return centers, b_m, b_s, v_m, v_s, m_b, m_v
 end
 
-order = sortperm(ratios)
+# ── Build figure ──────────────────────────────────────────────────────────────
+# Two columns; each column has two y-axes (b left, v right).
 
-# ── Two-panel figure ─────────────────────────────────────────────────────────
+fig = Figure(size = (1400, 500))
 
-fig = Figure(size = (1400, 600))
+# colours
+c_nc_b   = :royalblue
+c_cu_b   = :tomato
+c_nc_v   = :darkorange
+c_cu_v   = :firebrick
 
-# --- Panel A: Zoomed view f₀/κ ∈ [0, 5] with fine bins ---
-ax1 = Axis(fig[1, 1];
-    xlabel   = "f₀ / κ",
-    ylabel   = "Fraction of snapshots",
-    title    = "A)  Transition region  (f₀/κ = 0 – 5)",
-    yticks   = 0:0.1:1.0,
-)
-ylims!(ax1, -0.02, 1.02)
-xlims!(ax1, 0.0, 5.0)
+function add_panel!(fig, col, xlabel_str, title_str, edges, ratio_mask)
+    rm   = ratio_mask
+    r_s  = ratios[rm];    b_s = b_means[rm];  v_s = v_means[rm]
+    cu_s = curled_fl[rm]
 
-zoom_mask = ratios .<= 5.0
-zm_r  = ratios[zoom_mask]
-zm_fc = frac_circ[zoom_mask]; zm_fcu = frac_curl[zoom_mask]
-zm_fe = frac_elong[zoom_mask]; zm_ft = frac_tri[zoom_mask]
+    # Primary axis: b
+    ax_b = Axis(fig[1, col];
+        xlabel   = xlabel_str,
+        ylabel   = "mean asphericity  b",
+        title    = title_str,
+        yticklabelcolor = c_nc_b,
+        ylabelcolor     = c_nc_b,
+    )
 
-bc_z, yc_z, ycu_z, ye_z, yt_z = bin_fractions(zm_r, zm_fc, zm_fcu, zm_fe, zm_ft;
-                                                edges = range(0.0, 5.0, length = 51))
+    # Scatter b — non-curled
+    nc = .!cu_s
+    scatter!(ax_b, r_s[nc], b_s[nc];
+             color = (c_nc_b, 0.4), markersize = 8)
+    # Scatter b — curled
+    if any(cu_s)
+        scatter!(ax_b, r_s[cu_s], b_s[cu_s];
+                 color = (c_cu_b, 0.6), marker = :star5, markersize = 14)
+    end
 
-# Scatter
-zo = sortperm(zm_r)
-scatter!(ax1, zm_r[zo], zm_fc[zo];  color = (:royalblue,   0.15), markersize = 5)
-scatter!(ax1, zm_r[zo], zm_fcu[zo]; color = (:darkorange,  0.15), markersize = 5)
-scatter!(ax1, zm_r[zo], zm_fe[zo];  color = (:crimson,     0.15), markersize = 5)
-scatter!(ax1, zm_r[zo], zm_ft[zo];  color = (:forestgreen, 0.15), markersize = 5)
+    # Binned b curve
+    centers, b_m, b_sd, v_m, v_sd, m_b, m_v = bin_continuous(r_s, b_s, v_s; edges)
+    cx = centers[m_b]; by = b_m[m_b]; bsd = b_sd[m_b]
+    if length(cx) > 1
+        band!(ax_b, cx, by .- bsd, by .+ bsd; color = (c_nc_b, 0.15))
+        lines!(ax_b, cx, by; color = c_nc_b, linewidth = 2.5)
+    end
 
-# Binned curves
-lines!(ax1, bc_z, yc_z;  color = :royalblue,  linewidth = 3, label = "Circular")
-lines!(ax1, bc_z, ycu_z; color = :darkorange, linewidth = 3, label = "Curled")
-lines!(ax1, bc_z, ye_z;  color = :crimson,    linewidth = 3, label = "Elongated")
-lines!(ax1, bc_z, yt_z;  color = :forestgreen, linewidth = 3, label = "Triangular")
+    # Secondary axis: v (right side)
+    ax_v = Axis(fig[1, col];
+        yaxisposition   = :right,
+        ylabel          = "mean COM speed  v",
+        yticklabelcolor = c_nc_v,
+        ylabelcolor     = c_nc_v,
+        xticksvisible   = false,
+        xticklabelsvisible = false,
+        xlimits         = ax_b.xlimits,
+    )
+    linkxaxes!(ax_b, ax_v)
+    hidespines!(ax_v, :l, :t, :b)
 
-vlines!(ax1, [0.7]; color = :gray40, linestyle = :dash, linewidth = 1.5, label = "Circ→Tri  ≈ 0.7")
-vlines!(ax1, [1.4]; color = :gray60, linestyle = :dot,  linewidth = 1.5, label = "Tri→Elong ≈ 1.4")
+    hv = .!isnan.(v_s)
+    if any(hv .& nc)
+        scatter!(ax_v, r_s[hv .& nc], v_s[hv .& nc];
+                 color = (c_nc_v, 0.4), marker = :diamond, markersize = 8)
+    end
+    if any(hv .& cu_s)
+        scatter!(ax_v, r_s[hv .& cu_s], v_s[hv .& cu_s];
+                 color = (c_cu_v, 0.6), marker = :star5, markersize = 14)
+    end
 
-axislegend(ax1; position = :rt)
+    cx_v = centers[m_v]; vy = v_m[m_v]; vsd = v_sd[m_v]
+    if length(cx_v) > 1
+        band!(ax_v, cx_v, vy .- vsd, vy .+ vsd; color = (c_nc_v, 0.15))
+        lines!(ax_v, cx_v, vy; color = c_nc_v, linewidth = 2.5, linestyle = :dash)
+    end
 
-# --- Panel B: Full range, log scale ---
-ax2 = Axis(fig[1, 2];
-    xlabel   = "f₀ / κ  (log scale)",
-    ylabel   = "Fraction of snapshots",
-    title    = "B)  Full range",
-    xscale   = log10,
-    yticks   = 0:0.1:1.0,
-    xticks   = [0.1, 0.3, 1.0, 3.0, 10.0, 30.0],
-)
-ylims!(ax2, -0.02, 1.02)
+    return ax_b, ax_v
+end
 
-# Use all data, binned on log-spaced edges
-log_edges = 10 .^ range(log10(max(minimum(ratios), 0.01)), log10(maximum(ratios)), length = 51)
-bc_f, yc_f, ycu_f, ye_f, yt_f = bin_fractions(ratios, frac_circ, frac_curl, frac_elong, frac_tri;
-                                                edges = log_edges)
+# --- Panel A: zoomed linear, f₀/κ ∈ [0, 30] ---
+zoom_lo, zoom_hi = 0.0, 30.0
+mask_zoom = (ratios .>= zoom_lo) .& (ratios .<= zoom_hi)
+edges_zoom = range(zoom_lo, zoom_hi, length = N_BINS_ZOOM + 1)
 
-scatter!(ax2, ratios[order], frac_circ[order];  color = (:royalblue,   0.12), markersize = 4)
-scatter!(ax2, ratios[order], frac_curl[order];  color = (:darkorange,  0.12), markersize = 4)
-scatter!(ax2, ratios[order], frac_elong[order]; color = (:crimson,     0.12), markersize = 4)
-scatter!(ax2, ratios[order], frac_tri[order];   color = (:forestgreen, 0.12), markersize = 4)
+ax_b1, ax_v1 = add_panel!(fig, 1,
+    "f₀ / κ",
+    "A)  Transition region  (f₀/κ = 0 – 30)",
+    edges_zoom, mask_zoom)
+xlims!(ax_b1, zoom_lo, zoom_hi)
 
-lines!(ax2, bc_f, yc_f;  color = :royalblue,  linewidth = 3, label = "Circular")
-lines!(ax2, bc_f, ycu_f; color = :darkorange, linewidth = 3, label = "Curled")
-lines!(ax2, bc_f, ye_f;  color = :crimson,    linewidth = 3, label = "Elongated")
-lines!(ax2, bc_f, yt_f;  color = :forestgreen, linewidth = 3, label = "Triangular")
+# --- Panel B: full range, log scale ---
+rmin = max(minimum(ratios), 0.01)
+rmax = maximum(ratios)
+log_edges = 10 .^ range(log10(rmin), log10(rmax), length = N_BINS_FULL + 1)
 
-vlines!(ax2, [0.7]; color = :gray40, linestyle = :dash, linewidth = 1.5)
-vlines!(ax2, [1.4]; color = :gray60, linestyle = :dot,  linewidth = 1.5)
+ax_b2, ax_v2 = add_panel!(fig, 3,
+    "f₀ / κ  (log scale)",
+    "B)  Full range",
+    log_edges, fill(true, length(ratios)))
+ax_b2.xscale = log10
+ax_v2.xscale = log10
+xlims!(ax_b2, rmin * 0.8, rmax * 1.2)
 
-axislegend(ax2; position = :rc)
+# ── Legend ────────────────────────────────────────────────────────────────────
+elems = [
+    MarkerElement(color = c_nc_b,  marker = :circle,  markersize = 10),
+    MarkerElement(color = c_cu_b,  marker = :star5,   markersize = 12),
+    LineElement(   color = c_nc_b, linewidth = 2.5),
+    LineElement(   color = c_nc_v, linewidth = 2.5, linestyle = :dash),
+]
+labels = ["Non-curled (scatter)", "Curled (scatter)", "Binned mean b  ±SD", "Binned mean v  ±SD"]
+Legend(fig[1, 2], elems, labels; framevisible = false, labelsize = 12)
 
 out_path = joinpath(results_dir, "transition_curves.png")
 save(out_path, fig, px_per_unit = 2)

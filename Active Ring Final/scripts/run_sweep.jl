@@ -66,9 +66,9 @@ println("Total runs: $n_runs\n")
 base_dir = joinpath(PROJECT_ROOT_SW, base_cfg["run"]["outdir"])
 mkpath(base_dir)
 
-const SWEEP_RUN_START = 500   # first run ID for this sweep
+sweep_run_start = Int(get(sw_cfg["sweep"], "start_id", 500))
 
-function next_run_id(base::String, start_id::Int = SWEEP_RUN_START)
+function next_run_id(base::String, start_id::Int = sweep_run_start)
     existing = filter(d -> occursin(r"^run_\d+$", d), readdir(base, join = false))
     nums = [parse(Int, d[5:end]) for d in existing]
     # Only consider IDs >= start_id

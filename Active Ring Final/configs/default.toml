@@ -16,7 +16,7 @@ k_stop    = 0.0       # log-wall barrier stiffness (0 = disabled)
 sigma     = 1.0       # WCA bead diameter σ
 epsilon   = 1.0       # WCA interaction strength ε
 topology  = "ring"    # "ring" or "open"
-f0        = 20.0      # active propulsion force magnitude
+f0        = 5.0      # active propulsion force magnitude
 mu        = 1.0       # mobility μ = 1/γ
 kBT       = 0.1       # thermal energy (0 = no noise)
 dt        = 0.00005   # time step
