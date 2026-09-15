@@ -1,0 +1,40 @@
+# sweep_N17_quadkinked_indep.toml
+# Quadruple-kinked IC (N = 17), re-run with the per-run seeding fix.
+#
+# Identical physics and grid to sweep_N17_quadkinked.toml — the only difference is
+# that run_sweep.jl now derives an independent RNG seed per parameter point
+# (seed*1e6 + combo_index) instead of re-seeding every run with the same 42.
+# Under the old scheme all 1500 runs replayed one noise realisation, so cells were
+# correlated with each other and stochastic regions looked artificially smooth.
+#
+# Ring layout : 8 :active + 1 :passive + 8 :active_rev
+# Initial condition : quadruple-kinked circle — outside-in reflections, depth k=4.
+#                     Seven beads are moved (i±3, i±2, i±1, i=9); beads 5 and 13
+#                     stay on the circle.  Deeper inward fold than k=3.
+#
+# Written to a NEW folder so results/Results_N17_quadkinked (old seeding) stays
+# intact and the two can be compared cell by cell.
+#
+# Grid  : 30 (κ) × 50 (f₀) = 1500 runs
+# κ  : 1 → 50   log-spaced (30 values)
+# f₀ : 1 → 120  log-spaced (50 values)
+
+[sweep]
+base     = "configs/default.toml"
+start_id = 1
+
+[sweep.run]
+outdir       = "results/Results_N17_quadkinked_indep"
+frames       = 1500
+substeps     = 100
+seed         = 42
+bead_layout  = "antipolar_quadkinked"
+
+[sweep.params]
+N = [17]
+
+[sweep.params.kappa]
+logspace = [1, 50.0, 30]
+
+[sweep.params.f0]
+logspace = [1, 120.0, 50]

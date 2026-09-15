@@ -1,0 +1,36 @@
+# sweep_N17_triplekinked.toml
+# Log-spaced sweep over κ and f₀ for N = 17, triple-kinked circle IC (passive junction ON).
+#
+# Ring layout : 8 :active + 1 :passive + 8 :active_rev
+# Initial condition : triple-kinked circle — outside-in reflections, depth k=3.
+#                     Five beads are moved; beads 6 and 12 (distance ≥ 3) stay on the circle.
+#                       step 1: bead 7  reflected across chord(6,  8 ) → inward
+#                               bead 11 reflected across chord(10, 12) → inward
+#                       step 2: bead 8  reflected across chord(7', 9 ) → inward (7 already moved)
+#                               bead 10 reflected across chord(9,  11') → inward (11 already moved)
+#                       step 3: bead 9  (passive) reflected across chord(8', 10') → deeply inward
+#
+# Grid  : 30 (κ) × 50 (f₀) = 1500 runs
+# κ  : 1 → 50   log-spaced (30 values)
+# f₀ : 1 → 120  log-spaced (50 values)
+# kBT: fixed at base-config value (0.1)
+
+[sweep]
+base     = "configs/default.toml"
+start_id = 1
+
+[sweep.run]
+outdir       = "results/Results_N17_triplekinked"
+frames       = 1500
+substeps     = 100
+seed         = 42
+bead_layout  = "antipolar_triplekinked"
+
+[sweep.params]
+N = [17]
+
+[sweep.params.kappa]
+logspace = [1, 50.0, 30]
+
+[sweep.params.f0]
+logspace = [1, 120.0, 50]

@@ -1,0 +1,33 @@
+# sweep_N16.toml
+# Log-spaced sweep over κ and f₀ for N = 16 (passive junction OFF).
+#
+# Ring layout: 8 :active + 8 :active_rev — no passive bead.
+# Both junctions (front and back) are direct active / active_rev bonds.
+#
+# Grid  : 30 (κ) × 50 (f₀) = 1500 runs
+# κ  : 1 → 50   log-spaced (30 values)
+# f₀ : 10 → 120 log-spaced (50 values)
+# kBT: fixed at base-config value (0.1)
+#
+# Toggle between N=16 and N=17 by swapping sweep configs:
+#   N=16 (passive off) → this file
+#   N=17 (passive on)  → sweep_N17.toml
+
+[sweep]
+base     = "configs/default.toml"
+start_id = 1
+
+[sweep.run]
+outdir   = "results/Results_N16"
+frames   = 1500
+substeps = 100
+seed     = 42
+
+[sweep.params]
+N = [16]    # override default.toml N=17; single-value keeps the combo count unchanged
+
+[sweep.params.kappa]
+logspace = [1, 50.0, 30]
+
+[sweep.params.f0]
+logspace = [1, 120.0, 50]

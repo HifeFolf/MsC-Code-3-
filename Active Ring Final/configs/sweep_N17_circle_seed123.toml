@@ -1,0 +1,22 @@
+# sweep_N17_circle_seed123.toml
+# Same as sweep_N17_circle.toml (seed=42) but with seed=123.
+
+[sweep]
+base     = "configs/default.toml"
+start_id = 1
+
+[sweep.run]
+outdir       = "results/Results_N17_circle_seed123"
+frames       = 1500
+substeps     = 100
+seed         = 123
+bead_layout  = "antipolar"
+
+[sweep.params]
+N = [17]
+
+[sweep.params.kappa]
+logspace = [1, 50.0, 30]
+
+[sweep.params.f0]
+logspace = [1, 120.0, 50]

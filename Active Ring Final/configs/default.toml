@@ -6,17 +6,17 @@
 # [run]     → controls the simulation loop and output
 
 [params]
-N         = 16        # number of beads (must be even for anti-polar layout)
+N         = 17        # number of beads — 17: passive junction ON (8+1+8), 16: passive junction OFF (8+8)
 l         = 1.0       # rest bond length
-ks        = 2000.0    # bond spring stiffness
-kappa     = 2.0       # bending stiffness κ
+ks        = 4444.0    # bond spring stiffness
+kappa     = 10.0       # bending stiffness κ
 theta_max = 3.141592653589793   # maximum allowed bond angle (π rad)
 theta_buf = 0.1       # log-wall buffer width (rad)
 k_stop    = 0.0       # log-wall barrier stiffness (0 = disabled)
 sigma     = 1.0       # WCA bead diameter σ
 epsilon   = 1.0       # WCA interaction strength ε
 topology  = "ring"    # "ring" or "open"
-f0        = 5.0      # active propulsion force magnitude
+f0        = 60.0      # active propulsion force magnitude
 mu        = 1.0       # mobility μ = 1/γ
 kBT       = 0.1       # thermal energy (0 = no noise)
 dt        = 0.00005   # time step

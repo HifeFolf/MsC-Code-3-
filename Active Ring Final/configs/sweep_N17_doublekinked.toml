@@ -1,0 +1,38 @@
+# sweep_N17_doublekinked.toml
+# Log-spaced sweep over κ and f₀ for N = 17, double-kinked circle IC (passive junction ON).
+#
+# Ring layout : 8 :active + 1 :passive + 8 :active_rev
+# Initial condition : double-kinked circle — perfect circle with a three-bead
+#                     inward V centred on the passive bead (i=9):
+#                       step 1: bead 8  reflected across chord(7, 9)  → inward
+#                       step 2: bead 10 reflected across chord(9, 11) → inward
+#                       step 3: bead 9  reflected across chord(8', 10') → deeply inward
+#                     Beads 7 and 11 (next-nearest neighbours) remain on the circle.
+#
+# Grid  : 30 (κ) × 50 (f₀) = 1500 runs
+# κ  : 1 → 50   log-spaced (30 values)
+# f₀ : 1 → 120  log-spaced (50 values)
+# kBT: fixed at base-config value (0.1)
+#
+# Pair with sweep_N17_circle.toml and sweep_N17_kinked.toml to compare IC sensitivity.
+# Physics (forces, bead types, parameters) is identical — only the geometry differs.
+
+[sweep]
+base     = "configs/default.toml"
+start_id = 1
+
+[sweep.run]
+outdir       = "results/Results_N17_doublekinked"
+frames       = 1500
+substeps     = 100
+seed         = 42
+bead_layout  = "antipolar_doublekinked"
+
+[sweep.params]
+N = [17]
+
+[sweep.params.kappa]
+logspace = [1, 50.0, 30]
+
+[sweep.params.f0]
+logspace = [1, 120.0, 50]

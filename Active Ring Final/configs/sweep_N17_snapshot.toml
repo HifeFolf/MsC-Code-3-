@@ -1,0 +1,32 @@
+# sweep_N17_snapshot.toml
+# Log-spaced sweep over κ and f₀ for N = 17, starting from a snapshot IC.
+#
+# Snapshot : results/Results_N17_circle1/run_0607
+#            (κ = 2.247, f₀ = 7.057 — curled/compact final state)
+#
+# Grid  : 30 (κ) × 50 (f₀) = 1500 runs
+# κ  : 1 → 50   log-spaced (30 values)
+# f₀ : 1 → 120  log-spaced (50 values)
+# kBT: fixed at base-config value (0.1)
+
+[sweep]
+base     = "configs/default.toml"
+start_id = 1
+
+[sweep.run]
+outdir            = "results/Results_N17_snapshot"
+frames            = 1500
+substeps          = 100
+seed              = 42
+bead_layout       = "from_snapshot"
+ic_snapshot_dir   = "results/Results_N17_circle1/run_0607"
+ic_snapshot_frame = -1
+
+[sweep.params]
+N = [17]
+
+[sweep.params.kappa]
+logspace = [1, 50.0, 30]
+
+[sweep.params.f0]
+logspace = [1, 120.0, 50]

@@ -1,0 +1,33 @@
+# sweep_N17_circle.toml
+# Log-spaced sweep over κ and f₀ for N = 17, standard circle IC (passive junction ON).
+#
+# Ring layout : 8 :active + 1 :passive + 8 :active_rev
+# Initial condition : perfect circle — all beads at φ_i = 2π(i-1)/17
+#                     passive bead (i=9) at φ = 2π·8/17 ≈ 169°
+#
+# Grid  : 30 (κ) × 50 (f₀) = 1500 runs
+# κ  : 1 → 50   log-spaced (30 values)
+# f₀ : 1 → 120  log-spaced (50 values)
+# kBT: fixed at base-config value (0.1)
+#
+# Pair with sweep_N17_kinked.toml to compare IC sensitivity.
+
+[sweep]
+base     = "configs/default.toml"
+start_id = 1
+
+[sweep.run]
+outdir       = "results/Results_N17_circle"
+frames       = 1500
+substeps     = 100
+seed         = 42
+bead_layout  = "antipolar"
+
+[sweep.params]
+N = [17]
+
+[sweep.params.kappa]
+logspace = [1, 50.0, 30]
+
+[sweep.params.f0]
+logspace = [1, 120.0, 50]

@@ -1,0 +1,40 @@
+# from_snapshot_template.toml
+# Template for starting a run from the final frame of a completed simulation.
+#
+# Workflow:
+#   1. Run any simulation (run_single or run_sweep) to produce a traj.jld2.
+#   2. Copy this template, set ic_snapshot_dir to that run's directory, and
+#      adjust any params (kappa, f0, kBT, …) you want to change.
+#   3. julia --project scripts/run_single.jl configs/my_snapshot_run.toml
+#
+# The snapshot provides only positions — bead_types are re-derived from N.
+# N must match the snapshot (a mismatch raises an error at startup).
+
+[params]
+N         = 17
+l         = 1.0
+ks        = 4444.0
+kappa     = 10.0
+theta_max = 3.141592653589793
+theta_buf = 0.1
+k_stop    = 0.0
+sigma     = 1.0
+epsilon   = 1.0
+topology  = "ring"
+f0        = 60.0
+mu        = 1.0
+kBT       = 0.1
+dt        = 0.00005
+
+[run]
+frames       = 1500
+substeps     = 100
+framerate    = 60
+L            = 50.0
+seed         = 42
+outdir       = "results"
+
+# ── Snapshot IC ──────────────────────────────────────────────────────────────
+bead_layout      = "from_snapshot"
+ic_snapshot_dir  = "results/Results_N17_circle/run_0001"   # ← edit this
+ic_snapshot_frame = -1   # -1 = last frame, 1 = first, any positive = exact index

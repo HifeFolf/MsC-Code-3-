@@ -12,6 +12,8 @@
 #   summarize_run("results/run_0001")
 
 using CairoMakie
+CairoMakie.activate!()   # force headless backend — prevents GLMakie being picked up
+                         # when both backends are present in the environment
 
 const PROJECT_ROOT_SR = joinpath(@__DIR__, "..")
 

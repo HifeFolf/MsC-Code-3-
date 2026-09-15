@@ -1,0 +1,28 @@
+# sweep_large_01.toml
+# 2-D phase diagram sweep: vary κ and f₀ only (kBT fixed at base default = 0.1).
+#
+# Grid  : 100 (κ) × 150 (f₀) = 15 000 runs
+# Run IDs : 1 → 15 000   (results/Results_01/run_0001 … run_15000)
+#
+# κ  : 0 → 50   linearly spaced (100 values, step ≈ 0.505)
+# f₀ : 0 → 250  linearly spaced (150 values, step ≈ 1.678)
+# kBT: fixed at base-config value (0.1) — not swept here
+#
+# Phase diagram axes: κ (x) vs f₀ (y), colored by observable (b, COM speed, …)
+# Flexure number Fl = f₀/κ can be derived in post-processing.
+
+[sweep]
+base     = "configs/default.toml"
+start_id = 1
+
+[sweep.run]
+outdir   = "results/Results_06"
+frames   = 1500
+substeps = 100
+seed     = 42
+
+[sweep.params.kappa]
+linspace = [1.0, 50.0, 100]    
+
+[sweep.params.f0]
+linspace = [1.0, 120.0, 150]   

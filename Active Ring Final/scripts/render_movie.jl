@@ -4,9 +4,14 @@
 #
 # Usage (from the Active Ring Final/ project root):
 #
-#   julia --project scripts/render_movie.jl results/run_0001
+#   julia --project scripts/render_movie.jl results/Results_01/run_0001
+#   julia --project scripts/render_movie.jl Results_01 42
 #
-# Output:  results/run_0001/preview.mp4
+# Arguments (alternative two-argument form):
+#   arg 1 — results subfolder name   (e.g. Results_01)
+#   arg 2 — run ID number            (e.g. 42  →  run_0042)
+#
+# Output:  results/<subfolder>/<run>/preview.mp4
 #
 # Layout:  ring animation (left) + 5 time-series plots (right):
 #          Rg, A2, A3, Kloc, b
@@ -80,7 +85,9 @@ function render_movie(run_dir::String; output_name::String = "preview.mp4")
     t_end     = (n_frames - 1) / framerate   # video seconds, matches MP4 duration
 
     # ── Colours ──────────────────────────────────────────────────────────────
-    colour_map   = Dict(:active => :dodgerblue, :active_rev => :crimson)
+    colour_map   = Dict(:active     => :dodgerblue,
+                        :active_rev => :crimson,
+                        :passive    => :gold)
     bead_colours = [colour_map[t] for t in bead_types]
     seg_colours  = repeat(bead_colours; inner = 2)
 
@@ -99,9 +106,9 @@ function render_movie(run_dir::String; output_name::String = "preview.mp4")
     ys_pts         = Observable(r0[2, :])
 
     overlay_str = Observable(
-        @sprintf("Gxx=%.3f  Gyy=%.3f\nGxy=%.3f\nA₂=%.3f  A₃=%.3f\nKloc=%.3f\nRg²=%.3f\nb=%.3f",
+        @sprintf("Gxx=%.3f  Gyy=%.3f\nGxy=%.3f\nA₂=%.3f  A₃=%.3f\nKloc=%.3f\nKconn=%.3f\nRg²=%.3f\nb=%.3f",
                  gv0.Gxx, gv0.Gyy, gv0.Gxy,
-                 cv0.A2, cv0.A3, cv0.Kloc,
+                 cv0.A2, cv0.A3, cv0.Kloc, cv0.Kconn,
                  gv0.Rg^2, gv0.b))
 
     rg_data   = Observable(Point2f[])
@@ -168,9 +175,9 @@ function render_movie(run_dir::String; output_name::String = "preview.mp4")
         gv = Observables.gyration_vals(r)
         cv = Observables.contour_vals(r)
         overlay_str[] = @sprintf(
-            "Gxx=%.3f  Gyy=%.3f\nGxy=%.3f\nA₂=%.3f  A₃=%.3f\nKloc=%.3f\nRg²=%.3f\nb=%.3f",
+            "Gxx=%.3f  Gyy=%.3f\nGxy=%.3f\nA₂=%.3f  A₃=%.3f\nKloc=%.3f\nKconn=%.3f\nRg²=%.3f\nb=%.3f",
             gv.Gxx, gv.Gyy, gv.Gxy,
-            cv.A2, cv.A3, cv.Kloc,
+            cv.A2, cv.A3, cv.Kloc, cv.Kconn,
             gv.Rg^2, gv.b)
 
         t = Float32((frame_idx - 1) / framerate)
@@ -191,9 +198,23 @@ end
 
 # ── Standalone entry point ────────────────────────────────────────────────────
 
-# ▼▼▼  Edit this line to choose which run to render when using the Run button  ▼▼▼
-const RUN_DIR = joinpath(@__DIR__, "..", "results", "run_0008")
+# ▼▼▼  Edit these lines to choose which run to render when using the Run button  ▼▼▼
+const DEFAULT_SUBFOLDER = "Results_N17_kinked2"
+const DEFAULT_RUN_ID    = 0010
 # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
-run_dir = isempty(ARGS) ? RUN_DIR : ARGS[1]
+run_dir = if length(ARGS) == 0
+    # No args: use defaults above
+    joinpath(@__DIR__, "..", "results", DEFAULT_SUBFOLDER,
+             @sprintf("run_%04d", DEFAULT_RUN_ID))
+elseif length(ARGS) == 1
+    # Single arg: treat as full path  (e.g. results/Results_01/run_0042)
+    abspath(ARGS[1])
+else
+    # Two args: subfolder + run ID number  (e.g. Results_01  42)
+    joinpath(@__DIR__, "..", "results", ARGS[1],
+             @sprintf("run_%04d", parse(Int, ARGS[2])))
+end
+
+isdir(run_dir) || error("Run directory not found: $run_dir")
 render_movie(run_dir)

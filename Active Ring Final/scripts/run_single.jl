@@ -111,10 +111,25 @@ meta = Dict(
 IOUtils.save_metadata(run_dir, meta)
 
 # ── Initial condition ────────────────────────────────────────────────────────
+# bead_layout = "from_snapshot"  loads positions from a completed run:
+#   ic_snapshot_dir   = "results/Results_N17_circle/run_0042"  (run directory)
+#   ic_snapshot_frame = -1   # -1 = last frame, 1 = first, any positive = exact index
 Random.seed!(seed)
 
 bead_types = InitialConditions.antipolar_bead_types(p.N)
-state      = InitialConditions.perfect_circle_ic(p, bead_types)
+
+if rc["bead_layout"] == "from_snapshot"
+    snap_dir   = joinpath(PROJECT_ROOT, get(rc, "ic_snapshot_dir", ""))
+    snap_frame = Int(get(rc, "ic_snapshot_frame", -1))
+    _, snap_pos, _ = IOUtils.load_trajectory(snap_dir)
+    n_snap = size(snap_pos, 3)
+    fi     = snap_frame < 0 ? n_snap + snap_frame + 1 : snap_frame
+    size(snap_pos, 2) == p.N || error("Snapshot N=$(size(snap_pos,2)) ≠ config N=$(p.N)")
+    state  = EngineRing.State(snap_pos[:, :, fi], copy(bead_types))
+    println("Snapshot IC : $snap_dir  (frame $fi / $n_snap)")
+else
+    state = InitialConditions.create_ic(rc["bead_layout"], p, bead_types)
+end
 
 # ── Pre-allocate output arrays ───────────────────────────────────────────────
 times     = Vector{Float64}(undef, frames)
@@ -127,9 +142,15 @@ obs_b    = Vector{Float64}(undef, frames)
 obs_Gxx  = Vector{Float64}(undef, frames)
 obs_Gyy  = Vector{Float64}(undef, frames)
 obs_Gxy  = Vector{Float64}(undef, frames)
+obs_A1   = Vector{Float64}(undef, frames)
 obs_A2   = Vector{Float64}(undef, frames)
 obs_A3   = Vector{Float64}(undef, frames)
+obs_A4   = Vector{Float64}(undef, frames)
 obs_Kloc = Vector{Float64}(undef, frames)
+obs_P1   = Vector{Float64}(undef, frames)
+obs_P2   = Vector{Float64}(undef, frames)
+obs_P3   = Vector{Float64}(undef, frames)
+obs_P4   = Vector{Float64}(undef, frames)
 
 # ── Simulation loop ──────────────────────────────────────────────────────────
 dt_frame = substeps * p.dt     # simulation time per saved frame
@@ -170,9 +191,15 @@ for frame in 1:frames
     obs_Gxx[frame]  = obs.Gxx
     obs_Gyy[frame]  = obs.Gyy
     obs_Gxy[frame]  = obs.Gxy
+    obs_A1[frame]   = obs.A1
     obs_A2[frame]   = obs.A2
     obs_A3[frame]   = obs.A3
+    obs_A4[frame]   = obs.A4
     obs_Kloc[frame] = obs.Kloc
+    obs_P1[frame]   = obs.P1
+    obs_P2[frame]   = obs.P2
+    obs_P3[frame]   = obs.P3
+    obs_P4[frame]   = obs.P4
 
     # Progress indicator every 10 %
     if frame % max(1, frames ÷ 10) == 0
@@ -197,9 +224,15 @@ obs_dict = Dict{String, Vector{Float64}}(
     "Gxx"     => obs_Gxx,
     "Gyy"     => obs_Gyy,
     "Gxy"     => obs_Gxy,
+    "A1"      => obs_A1,
     "A2"      => obs_A2,
     "A3"      => obs_A3,
+    "A4"      => obs_A4,
     "Kloc"    => obs_Kloc,
+    "P1"      => obs_P1,
+    "P2"      => obs_P2,
+    "P3"      => obs_P3,
+    "P4"      => obs_P4,
 )
 IOUtils.save_observables(run_dir, times, obs_dict)
 

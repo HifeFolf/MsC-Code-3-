@@ -1,0 +1,33 @@
+# sweep_large_log.toml
+# 2-D log-spaced sweep: vary κ and f₀ on logarithmic axes.
+#
+# Grid  : 30 (κ) × 50 (f₀) = 1500 runs
+#
+# κ  : 1 → 50    log-spaced (30 values) — κ = 0 excluded (log undefined)
+# f₀ : 1 → 120   log-spaced (50 values) — f₀ = 0 excluded (log undefined)
+# kBT: fixed at base-config value (0.1) — not swept here
+#
+# Log spacing gives uniform density per decade:
+#   κ  spans ~1.7 decades  (1.0, 1.20, 1.44, …, 50)
+#   f₀ spans ~2.1 decades  (1.0, 1.10, 1.21, …, 120)
+#
+# Phase diagram axes are naturally plotted on log scales.
+# The flexure number Fl = f₀/κ will be log-uniformly distributed.
+#
+# For N=16 (passive off) or N=17 (passive on), use sweep_N16.toml / sweep_N17.toml.
+
+[sweep]
+base     = "configs/default.toml"
+start_id = 1
+
+[sweep.run]
+outdir   = "results/Results_log3"
+frames   = 1500
+substeps = 100
+seed     = 42
+
+[sweep.params.kappa]
+logspace = [1, 50.0, 30]    # 39 values: 0.1, 0.148, 0.219, …, 50.0
+
+[sweep.params.f0]
+logspace = [1, 120.0, 50]    # 50 values: 1.0, 1.48, 2.19,  …, 120.0

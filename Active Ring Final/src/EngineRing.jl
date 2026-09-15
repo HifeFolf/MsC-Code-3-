@@ -25,7 +25,7 @@ Simulation parameters.
 Base.@kwdef struct Params
     N::Int         = 16
     l::Float64     = 1.0
-    ks::Float64    = 2000.0
+    ks::Float64    = 4444.0
     κ::Float64     = 10.0
     theta_max::Float64 = π
     theta_buf::Float64 = 0.1
@@ -156,7 +156,7 @@ function wca_forces!(F::Matrix{Float64}, r::Matrix{Float64}, p::Params)
             inv_r2 = 1.0 / r2
             sr2    = σ2 * inv_r2
             sr6    = sr2^3
-            fac    = 24.0 * ϵ * inv_r2 * (2.0*sr6*sr6 - sr6)
+            fac    = ϵ * inv_r2 * (2.0*sr6*sr6 - sr6)
 
             F[1,i] -= fac*dx;  F[2,i] -= fac*dy
             F[1,j] += fac*dx;  F[2,j] += fac*dy

@@ -1,0 +1,32 @@
+# sweep_N17_quintkinked.toml
+# Log-spaced sweep over κ and f₀ for N = 17, quintuple-kinked circle IC (passive junction ON).
+#
+# Ring layout : 8 :active + 1 :passive + 8 :active_rev
+# Initial condition : quintuple-kinked circle — outside-in reflections, depth k=5.
+#                     Nine beads are moved (i±4, i±3, i±2, i±1, i=9); beads 4 and 14 stay on the circle.
+#                     At this depth the passive bead is well past the ring centre.
+#
+# Grid  : 30 (κ) × 50 (f₀) = 1500 runs
+# κ  : 1 → 50   log-spaced (30 values)
+# f₀ : 1 → 120  log-spaced (50 values)
+# kBT: fixed at base-config value (0.1)
+
+[sweep]
+base     = "configs/default.toml"
+start_id = 1
+
+[sweep.run]
+outdir       = "results/Results_N17_quintkinked1"
+frames       = 1500
+substeps     = 100
+seed         = 42
+bead_layout  = "antipolar_quintkinked"
+
+[sweep.params]
+N = [17]
+
+[sweep.params.kappa]
+logspace = [1, 50.0, 30]
+
+[sweep.params.f0]
+logspace = [1, 120.0, 50]
