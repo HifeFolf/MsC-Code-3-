@@ -74,9 +74,20 @@ frame count. Several older scripts define `LAST_FRAMES = 20*60` and call it "las
 31, folded 65). So **outward-bent ⟺ moving; circle & inward ⟺ still.** Do not infer stillness
 from a steady `Kconn`.
 
-**⚠️ `Kconn` sign flips at extreme curvature.** The "inward-crumpled" (⟨Kconn⟩ ≈ −92°) and
-"curled" (⟨Kconn⟩ ≈ +111°) families are the *same folded geometry* (Rg 1.38 vs 1.33). Sign is
-not a physical distinction there. Use `Rg` to identify folding.
+**⚠️ The two folded families are DIFFERENT states, even though `Rg` cannot tell them apart.**
+The "inward-crumpled" (⟨Kconn⟩ ≈ −92°) and "curled outward" (⟨Kconn⟩ ≈ +111°) folds have nearly
+the same `Rg` (1.38 vs 1.33), and an earlier version of these notes called them "the same folded
+geometry" with the sign of `Kconn` "not a physical distinction". **That was measured and is wrong.**
+Complete folded dwells with `Kconn > 0` last **4.1 s** on average (CV 1.00); with `Kconn < 0`,
+**50.4 s** (CV 1.22) — a ~12× lifetime difference. The ring is therefore at least **tristable**
+(open / fold-out / fold-in). Identify folding with `Rg`, then split it by the **sign of `Kconn`**;
+any analysis using `Rg` alone merges two kinetically distinct states.
+
+Transitions between the three run **one way** — open → fold-in → fold-out → open — with
+`fold-in → open` **never observed** (0 of 455 exits) and every reverse step suppressed (0 vs 626,
+3 vs 455, 219 vs 684). A net cycle is direct evidence of **broken detailed balance**. The outward
+fold reached from the inward fold escapes memorylessly (CV 1.14), so it is a genuine intermediate:
+**the inward fold must evert before it can open.** (`scripts/analyze_tristate.jl`.)
 
 **⚠️ The old seeding bug.** Sweeps before the fix called `Random.seed!(42)` once per
 combination, so all 1500 runs replayed *one* noise stream — one realisation sampled at 1500

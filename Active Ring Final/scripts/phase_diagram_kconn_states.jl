@@ -86,6 +86,12 @@ end
 # (⟨Kconn⟩ ≈ −92°) and the "curled" (⟨Kconn⟩ ≈ +111°) cells are the same folded
 # geometry (Rg 1.38 vs 1.33); Kconn's sign flips at extreme curvature and is not
 # a physical distinction.
+#
+# CORRECTION (2026-09-15): the claim above was measured and is WRONG. The two
+# folded families share Rg but are kinetically distinct — complete folded dwells
+# with Kconn > 0 last 4.1 s on average (CV 1.00), with Kconn < 0 last 50.4 s
+# (CV 1.22), a ~12x lifetime difference. The sign of Kconn IS physical; Rg alone
+# merges two states. See scripts/analyze_tristate.jl.
 function ring_state(t, Kdeg, Rg, b, eq, N)
     i0   = window_start(t)
     nend = length(Rg)

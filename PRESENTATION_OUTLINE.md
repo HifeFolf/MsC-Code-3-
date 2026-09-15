@@ -245,9 +245,12 @@ all with independent noise streams.
 ## ACT 8 — Open questions (1 slide)
 
 ### Slide 22
-1. **The folded state is NOT exponential** (CV 1.1–1.8, two-slope survival curve) while the
-   open state is clean. Suggests folded substructure — unexplained, and possibly the most
-   interesting thing here.
+1. **Resolved — the folded state is two states.** Splitting folded dwells by the sign of `Kconn`
+gives an outward fold (4.1 s, CV 1.00) and an inward fold (50.4 s, CV 1.22) with the same Rg;
+averaging them produced the CV 1.83 and the two-slope survival curve. They form a one-way cycle
+(open → fold-in → fold-out → open, with fold-in → open never observed) — broken detailed balance.
+**Still open:** the inward fold alone is not fully exponential, and the cycle has only been measured
+on the bistable locus. See the two new Act 6 slides and `tristate.png`.
 2. **The absorbing/bistable boundary is window-limited.** In κ 1–2, Φ 2–5, the 30 s map calls
    30% of cells absorbing that 300 s data shows switching. Fix: map a *rate*, which is
    window-independent, rather than a fraction observed.
@@ -287,6 +290,7 @@ are the intellectual content of the work.
 | 10 | `Results_N17_phi_long_sharedseed/phase_diagram_confidence.png` vs `Results_N17_phi_long/...` |
 | 18 | `Results_N17_bistable_long/dwell_analysis.png` |
 | 19 | `Results_N17_bistable_long/seed_ensemble.png` |
+| Act 6 (new) | `Results_N17_bistable_long/tristate.png` / `.pdf` |
 | 20 | `campaign/before_after.png` / `.pdf` |
 | 21 | `campaign/validation_map.png` / `.pdf` + `campaign/movies_validation/` (22 files) |
 | spare | `Results_N17_phi_long/phase_diagram_regimes.png`, `phase_diagram_confidence.png` |
