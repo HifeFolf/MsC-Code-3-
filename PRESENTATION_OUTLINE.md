@@ -7,7 +7,7 @@
 > changed both the method and the physics.*
 
 Everything below hangs off that turn. Don't present as a chronological list of runs;
-present as a problem that forced a change of approach. Roughly 24 slides, ~35 min.
+present as a problem that forced a change of approach. Roughly 27 slides, ~40 min.
 
 All figure paths are relative to `Active Ring Final/results/`.
 
@@ -17,7 +17,7 @@ All figure paths are relative to `Active Ring Final/results/`.
 
 **Figure:** `Results_N17_bistable_long/bistability_evidence.png`
 
-Say: "This is the result — the ring has two states and hops between them, and we can
+Say: "This is the result — the ring switches between open and folded shapes, and folded turns out to be two states, and we can
 measure the rates. The rest of this talk is how we got here and why you should believe it."
 
 Audiences follow a long walkthrough far better when they know the destination.
@@ -33,7 +33,7 @@ Audiences follow a long walkthrough far better when they know the destination.
 - Net torque is **zero by construction** — the drive cannot be relieved by rotation, so it
   has to go into **shape**. This is a deliberately frustrated system.
 - The junction is where frustration localises ⇒ `Kconn` (turning angle there) is the order parameter.
-- Panel B: the two states, taken from a real trajectory. Open `Rg ≈ N/2π = 2.71`,
+- Panel B: open and folded, from a real trajectory (folded later splits into two states — see Act 6). Open `Rg ≈ N/2π = 2.71`,
   folded `Rg ≈ N/4π = 1.35`.
 
 ### Slide 3 — The hypothesis

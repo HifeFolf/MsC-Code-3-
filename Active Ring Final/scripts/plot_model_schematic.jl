@@ -93,7 +93,7 @@ if isfile(tp) && isfile(op)
 else
     Label(gb[1,1], "trajectory not found"; tellwidth = false)
 end
-Label(fig[0,2], "B   The two states it chooses between"; fontsize = 15, font = :bold,
+Label(fig[0,2], "B   Open and folded, from a real trajectory"; fontsize = 15, font = :bold,
       halign = :left, tellwidth = false)
 
 base = joinpath(ROOT,"results","campaign","model_schematic")
