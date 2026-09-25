@@ -100,6 +100,35 @@ mb=eb[okE]./ne[okE]; me=ee[okE]./ne[okE]; mw=ew[okE]./ne[okE]
 @printf("mean energies over the window:  U_bond %.1f   U_bend %.2f   U_wca %.4f   (kBT = 0.1)\n",
         mean(Ub), mean(Ue), mean(Uw))
 
+
+# ── numbers behind the figure: well / barrier / well for each reconstruction ──
+function wells(x, y)
+    n = length(y); (n < 12) && return nothing
+    bt = 4 + argmax(@view y[5:n-4])
+    li = argmin(@view y[1:bt]); ri = bt - 1 + argmin(@view y[bt:end])
+    (x[li], y[li], x[bt], y[bt], x[ri], y[ri])
+end
+nearest(xs, x0) = argmin(abs.(xs .- x0))
+let wP = wells(ctr[okP], mlnP), wK = wells(ctr[idx], Ueff)
+    for (nm, wv) in (("-ln P", wP), ("U_eff (Kramers-Moyal)", wK))
+        wv === nothing && continue
+        xl, yl, xb, yb, xr, yr = wv
+        @printf("%-22s  folded well Rg %.2f, barrier Rg %.2f, open well Rg %.2f | barrier from folded %.2f, from open %.2f, wells differ by %.2f\n",
+                nm, xl, xb, xr, yb-yl, yb-yr, yr-yl)
+    end
+    # real energy at those three places, in kBT, relative to the folded well
+    if wP !== nothing
+        xs = ctr[okE]; tot = mb .+ me .+ mw
+        il, ib, ir = nearest(xs, wP[1]), nearest(xs, wP[3]), nearest(xs, wP[5])
+        @printf("real energy (kBT)     folded 0, barrier %+.1f, open %+.1f   [barrier/open: bond %+.1f/%+.1f, bend %+.1f/%+.1f, wca %+.1f/%+.1f]\n",
+                (tot[ib]-tot[il])/0.1, (tot[ir]-tot[il])/0.1,
+                (mb[ib]-mb[il])/0.1, (mb[ir]-mb[il])/0.1, (me[ib]-me[il])/0.1, (me[ir]-me[il])/0.1,
+                (mw[ib]-mw[il])/0.1, (mw[ir]-mw[il])/0.1)
+    end
+    @printf("D2 range over the window: %.2e … %.2e  (ratio %.1f)\n",
+            minimum(D2[idx]), maximum(D2[idx]), maximum(D2[idx])/minimum(D2[idx]))
+end
+
 sh(v) = v .- minimum(v)
 fig = Figure(size=(1680,560))
 ax1 = Axis(fig[1,1], xlabel="Rg", ylabel="[arb.]",
