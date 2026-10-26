@@ -16,3 +16,7 @@ Active Ring Final/results/
 
 # Claude Code memory
 .claude/
+
+# Movies (too large for git)
+*.mp4
+*.gif
