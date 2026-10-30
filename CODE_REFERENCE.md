@@ -452,8 +452,11 @@ last segments of each run add exposure time but are never counted as events.
 
 ```
 D₁(x) = ⟨ΔRg⟩/τ ,   D₂(x) = ⟨ΔRg²⟩/(2τ) ,   U_eff(x) = −∫ D₁/D₂ dx ,   τ = frame spacing (0.05 s)
-k_Kramers = (D₂(top)/2π) √(|U″(well)| |U″(top)|) exp(−ΔU)          (no fitted parameter)
+T_exact   = ∫_well^abs dy e^{U(y)} ∫^y dz e^{−U(z)}/D₂(z)                 (1/D₂ inside for U_eff)
+k_Kramers = (D₂(well)/2π) √(|U″(well)| |U″(top)|) exp(−ΔU)          (high-barrier limit; no fitted parameter)
 ```
+The script also computes T with G = U + ln D₂ (1/D₂ outside) and stops if the two disagree. A third version
+uses the histogram −ln P, and the old D₂(top) value is kept as a comparison column.
 ```julia
     D1 = (s1[best] ./ nb[best]) ./ c.dt
     D2 = (s2[best] ./ nb[best]) ./ (2*c.dt)
@@ -468,8 +471,17 @@ k_Kramers = (D₂(top)/2π) √(|U″(well)| |U″(top)|) exp(−ΔU)          (
         coef = [xs.^2 xs ones(length(xs))] \ U[lo:hi]
         2*coef[1]
     end
-    pre(cw) = (D2[bt]/(2π)) * sqrt(abs(cw*ct))
-    kpred = (folded = pre(cw_f)*exp(-(U[bt]-U[li])), open = pre(cw_o)*exp(-(U[bt]-U[ri])))
+    pre(cw, i) = (D2[i]/(2π)) * sqrt(abs(cw*ct))
+    kpred = (folded = pre(cw_f,li)*exp(-(U[bt]-U[li])), open = pre(cw_o,ri)*exp(-(U[bt]-U[ri])))
+
+    function mfpt(xs, outer, inner, i0, ia)       # trapezoid double integral
+        cum = zeros(length(xs))
+        for i in 2:ia; cum[i] = cum[i-1] + 0.5*(inner[i]+inner[i-1])*(xs[i]-xs[i-1]); end
+        g = outer .* cum
+        sum(0.5*(g[i]+g[i-1])*(xs[i]-xs[i-1]) for i in i0+1:ia)
+    end
+    # folded escape: start at well li, reflect at x[1], absorb at first bin ≥ 1.1thr
+    Tf = mfpt(x, exp.(U), exp.(-U)./D2, li, findfirst(>=(1.1thr), x))
 ```
 Markov validity (lag dependence, Chapman–Kolmogorov) is checked in `scripts/markov_check.jl`.
 

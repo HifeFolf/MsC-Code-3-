@@ -136,11 +136,21 @@ U_eff(x) = −∫ D₁/D₂ dx           trapezoid over well-sampled bins
 Self-consistency identity for a 1-D Langevin process with multiplicative noise:
 `−ln P = U_eff + ln D₂ + const`.
 
-**Parameter-free Kramers rate** (the test of the above):
+**Parameter-free rate predictions** (the test of the above). The exact mean first-passage time of the 1-D
+process, from the backward equation D₁T′ + D₂T″ = −1:
 ```
-k = (D₂(top) / 2π) · √( |U″(well)| · |U″(top)| ) · exp(−ΔU)
+T = ∫_well^abs dy  e^{U_eff(y)}  ∫^y dz  e^{−U_eff(z)} / D₂(z)          k_exact = 1/T
 ```
-Curvatures from a least-squares parabola over ±2 bins. Nothing is fitted.
+The integral starts at the well, reflects at the far edge of the well-sampled range, and absorbs at the
+other state's tracker threshold, which is where the measured rate counts an escape. With U_eff, 1/D₂ goes in
+the **inner** integral. The same T written with G = U_eff + ln D₂ has 1/D₂ in the outer integral; the script
+computes both and requires agreement to rounding. The high-barrier limit is
+```
+k = (D₂(well) / 2π) · √( |U″(well)| · |U″(top)| ) · exp(−ΔU_eff)
+```
+**D₂ at the well, not the top:** D₂(top) pairs with the −ln P barrier, not with U_eff. Versions of this file
+before 2026-10-30 used D₂(top) with U_eff, which is inconsistent (§6.9). Curvatures come from a least-squares
+parabola over ±2 bins. Nothing is fitted.
 
 ---
 
@@ -296,12 +306,19 @@ Mean energies over the window (simulation units): U_bond 1.2, U_bend 5.16, U_wca
   0.0073 s⁻¹ (15×). The drive *tilts* the landscape rather than lifting one side.
 - Memoryless test: escape from **open CV = 0.95** (exponential ✓), from **folded CV = 1.49** (✗ — a mixture,
   because "folded" is two states).
-- **Parameter-free Kramers prediction vs measurement:**
+- **Parameter-free rate prediction vs measurement** (median measured/predicted, 10–90% across cells; rerun
+  2026-10-30):
 
-  | Direction | n | Median measured/predicted | 10–90% |
-  |---|---|---|---|
-  | open → folded (passes the CV test) | 29 | **2.01** | 0.60 – 9.45 |
-  | folded → open (fails it) | 29 | 4.61 | 2.56 – 47.31 |
+  | Direction | n | Exact MFPT (U_eff) | Exact MFPT (histogram −ln P) | Kramers, D₂(well) | Old: D₂(top) |
+  |---|---|---|---|---|---|
+  | open → folded (passes the CV test) | 29 | **9.23** (4.43 – 24.49) | 15.64 (13.27 – 17.29) | 5.13 (3.01 – 11.80) | 2.01 (0.60 – 9.45) |
+  | folded → open (fails it) | 29 | **12.46** (6.68 – 29.67) | 9.13 (6.99 – 10.94) | 20.42 (5.34 – 222.19) | 4.61 (2.56 – 47.31) |
+
+  **The measured rates are about 10× faster than the 1-D diffusion on Rg predicts.** The earlier "within a
+  factor of two" came from pairing U_eff with D₂(top), which is not a consistent formula. The exact MFPT
+  removes the high-barrier approximation, so the gap is not that approximation. The two exact versions
+  differ because the histogram −ln P does not equal U_eff + ln D₂ exactly. The histogram version has a narrow
+  spread, i.e. the gap is close to a constant factor per direction. **The cause is not established.**
 
 - −ln P overstates the kinetic barrier: median ratio **1.21** (folded direction), **1.73** (open direction).
 - The `ln k` vs barrier **slope test is not a clean discriminator**: −0.38 (U_eff, R² 0.66) and −0.69
@@ -503,9 +520,8 @@ these figures already carry their own axis labels at a readable size.
   of order 1."
 - "With the propulsion switched off and every other parameter unchanged, the ring did not fold once in
   20,647 s of simulation, and never approached closer than Rg = 2.24 against a folding threshold of 1.894."
-- "Escape from the open state is memoryless (CV = 0.95), and a Kramers rate built from the reconstructed
-  potential, the measured diffusion and the well curvatures predicts the measured rate within a median factor
-  of two across 29 cells, with no fitted parameter."
+- "Escape from the open state is memoryless (CV = 0.95)." (The former second half, that a Kramers rate
+  predicts the measured rate within a factor of two, was withdrawn on 2026-10-30; see §6.9.)
 - "In 455 observed exits from the inward fold, the ring never once passed directly to the open state."
 - "The energy function used here was verified against the engine's own force routines to a relative accuracy
   of 3 × 10⁻⁹."
